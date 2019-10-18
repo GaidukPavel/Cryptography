@@ -19,7 +19,7 @@ object Crypto {
     true
   }
 
-  private def generateSophieGermain(): (BigInt, BigInt) = {
+  def generateSophieGermain(): (BigInt, BigInt) = {
     var exit = false
     var q:BigInt = 0
     while (!exit) {
@@ -110,107 +110,6 @@ object Crypto {
     "log" + a + s"($b) mod $p = Undefined"
   }
 
-  def Shamir_cipher(m:String): Unit ={
-    var p = gen_test_prime_number()
-
-    for (sym <- m) {
-      val Ca = gen_test_prime_number()
-      var inversion = gcd(Ca, p - 1)
-      val Da = if (inversion._2 < 1)
-        inversion._2 + p - 1
-      else
-        inversion._2
-//      println(s"Debug: Ca = $Ca, Da = $Da, p - 1 = ${p - 1}")
-
-      val Cb = gen_test_prime_number()
-      inversion = gcd(Cb, p - 1)
-      val Db = if (inversion._2 < 1)
-        inversion._2 + p - 1
-      else
-        inversion._2
-//      println(s"Debug: Cb = $Cb, Db = $Db, p - 1 = ${p - 1}")
-
-      val x1 = FME(sym.toInt, Ca, p) // transfer from A to B
-
-      val x2 = FME(x1, Cb, p) // transfer from B to A
-
-      val x3 = FME(x2, Da, p) // transfer from A to B
-
-      val x4 = FME(x3, Db, p)
-
-      println(s"B abonent get ${x4.toChar} symbol")
-    }
-  }
-
-  def El_Gamaal_cipher(m:String): Unit = {
-    var pg = generateSophieGermain()
-
-    var c1:BigInt = 0
-    var c2:BigInt = 0
-    c1 = gen_test_number(pg._1 - 1)
-    c2 = gen_test_number(pg._1 - 1)
-
-    val d1:BigInt = FME(pg._2, c1, pg._1)
-    val d2:BigInt = FME(pg._2, c2, pg._1)
-
-    for (sym <- m){
-      val k = gen_test_number(pg._1 - 2)
-      val r = FME(pg._2, k, pg._1) // counted by A
-      /*
-      d1, d2 - public keys
-      c1, c2 - private keys
-      */
-      val e = (sym.toInt % pg._1 * FME(d2, k, pg._1)) % pg._1 // counted by A
-
-      val o = (e % pg._1 * FME(r, pg._1 - 1 - c2, pg._1)) % pg._1 // counted by B
-      println(s"Abonent B get ${o.toChar} symbol")
-    }
-  }
-
-  def RSA(m:String): Unit ={
-    val P1:BigInt = gen_test_prime_number()
-    val Q1:BigInt = gen_test_prime_number()
-    val N1:BigInt = P1 * Q1
-
-    val fi1 = (P1 - 1) * (Q1 - 1)
-    var f:Boolean = true
-    var d1:BigInt = 0
-    while (f) {
-      d1 = gen_test_prime_number()
-      if (gcd(d1, fi1)._1 == 1)
-        f = false
-    }
-    var c1 = gcd(d1, fi1)._2
-    if (c1 < 0) c1 += fi1
-//    println(s"Debug: c1 = $c1, d1 = $d1, fi1 = $fi1")
-
-    val P2:BigInt = gen_test_prime_number()
-    val Q2:BigInt = gen_test_prime_number()
-    val N2:BigInt = P2 * Q2
-
-    val fi2 = (P2 - 1) * (Q2 - 1)
-    f = true
-    var d2:BigInt = 0
-    while (f) {
-      d2 = gen_test_prime_number()
-      if (gcd(d2, fi2)._1 == 1)
-        f = false
-    }
-    var c2 = gcd(d2, fi2)._2
-    if (c2 < 0) c2 += fi2
-//    println(s"Debug: c2 = $c2, d2 = $d2, fi2 = $fi2")
-
-    var message:BigInt = 0
-
-    for (sym <- m){
-      message += sym.toInt
-      message <<= 8
-      val e = FME(sym.toLong, d2, N2)
-      val decoded = FME(e, c2, N2)
-      print(s"${decoded.toChar}")
-    }
-    println()
-  }
 
 }
 
