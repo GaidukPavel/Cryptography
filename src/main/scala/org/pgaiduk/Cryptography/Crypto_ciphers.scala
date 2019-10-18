@@ -67,65 +67,59 @@ object Crypto_ciphers {
     println()
   }
 
-  def RSA(path:String): Unit ={
-    val byteArray = Files.readAllBytes(Paths.get(path))
-    val P1:BigInt = Crypto.gen_test_prime_number()
-    val Q1:BigInt = Crypto.gen_test_prime_number()
-    val N1:BigInt = P1 * Q1
+  def RSA_generate_keys(): (BigInt /*d*/, BigInt /*N*/, BigInt /*c*/) = {
+    val P:BigInt = Crypto.gen_test_prime_number()
+    val Q:BigInt = Crypto.gen_test_prime_number()
+    val N:BigInt = P * Q
+    val fi = (P - 1) * (Q - 1)
 
-    val fi1 = (P1 - 1) * (Q1 - 1)
     var f:Boolean = true
-    var d1:BigInt = 0
+    var d:BigInt = 0
     while (f) {
-      d1 = Crypto.gen_test_prime_number()
-      if (Crypto.gcd(d1, fi1)._1 == 1)
+      d = Crypto.gen_test_prime_number()
+      if (Crypto.gcd(d, fi)._1 == 1)
         f = false
     }
-    var c1 = Crypto.gcd(d1, fi1)._2
-    if (c1 < 0) c1 += fi1
-    //    println(s"Debug: c1 = $c1, d1 = $d1, fi1 = $fi1")
+    var c:BigInt = Crypto.gcd(d, fi)._2
+    if (c < 0) c += fi
+    (d, N, c)
+  }
 
-    val P2:BigInt = Crypto.gen_test_prime_number()
-    val Q2:BigInt = Crypto.gen_test_prime_number()
-    val N2:BigInt = P2 * Q2
-
-    val fi2 = (P2 - 1) * (Q2 - 1)
-    f = true
-    var d2:BigInt = 0
-
-    while (f) {
-      d2 = Crypto.gen_test_prime_number()
-      if (Crypto.gcd(d2, fi2)._1 == 1)
-        f = false
-    }
-    var c2 = Crypto.gcd(d2, fi2)._2
-    if (c2 < 0) c2 += fi2
-    //    println(s"Debug: c2 = $c2, d2 = $d2, fi2 = $fi2")
-    var decoded_message:String = ""
-    var encrypted_message:BigInt = 0
+  def RSA_count_offset(N:BigInt): (Int, BigInt) = {
     var offset:Int = 0
-    var N2_cp = N2
+    var N_cp = N
     var offset_mask:BigInt = 0
-    while (N2_cp != 0){
-      N2_cp >>= 1
+    while (N_cp != 0){
+      N_cp >>= 1
       offset += 1
     }
     for (i <- 0 until offset){
       offset_mask <<= 1
       offset_mask |= 1
     }
-    for (sym <- byteArray){
-      encrypted_message += Crypto.FME(sym.toInt, d2, N2)
-      var p = Crypto.FME(sym.toInt, d2, N2)
-      encrypted_message <<= offset
-    }
+    (offset, offset_mask)
+  }
 
-    for (i <- 0 to byteArray.size){
-      var c:Char = Crypto.FME(encrypted_message &  offset_mask, c2, N2).toChar
-      encrypted_message >>= offset
-      decoded_message += c
+  def RSA_encrypt(path:String, d:BigInt, N:BigInt): BigInt = {
+    val byteArray = Files.readAllBytes(Paths.get(path))
+    var encrypted_message:BigInt = 0
+
+    for (sym <- byteArray){
+      encrypted_message += Crypto.FME(sym.toInt, d, N)
+      encrypted_message <<= RSA_count_offset(N)._1
     }
-    println(s"Decoded message = ${decoded_message.reverse}")
+    encrypted_message
+  }
+
+  def RSA_decrypt(message:BigInt, c:BigInt, N:BigInt): String ={
+    var decoded_message:String = ""
+    var message_cp:BigInt = message
+    while (message_cp != 0){
+      var byte:Char = Crypto.FME(message_cp & RSA_count_offset(N)._2, c, N).toChar
+      message_cp >>= RSA_count_offset(N)._1
+      decoded_message += byte
+    }
+    decoded_message.reverse
   }
 
   def Vernam_cipher(path:String): Unit ={
