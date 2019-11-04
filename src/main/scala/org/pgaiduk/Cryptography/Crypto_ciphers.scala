@@ -1,8 +1,17 @@
 package org.pgaiduk.Cryptography
 
+import java.io.{BufferedOutputStream, FileOutputStream}
 import java.nio.file.{Files, Paths}
 
 object Crypto_ciphers {
+
+  private def write_to_file(message:String, path:String): Unit = {
+    val bos = new BufferedOutputStream(new FileOutputStream(path))
+    for (byte <- message) {
+      Stream.continually(bos.write(byte))
+    }
+    bos.close()
+  }
 
   def Shamir_cipher(path:String): Unit ={
     val byteArray = Files.readAllBytes(Paths.get(path))
@@ -15,7 +24,6 @@ object Crypto_ciphers {
         inversion._2 + p - 1
       else
         inversion._2
-      //      println(s"Debug: Ca = $Ca, Da = $Da, p - 1 = ${p - 1}")
 
       val Cb = Crypto.gen_test_prime_number()
       inversion = Crypto.gcd(Cb, p - 1)
@@ -23,7 +31,6 @@ object Crypto_ciphers {
         inversion._2 + p - 1
       else
         inversion._2
-      //      println(s"Debug: Cb = $Cb, Db = $Db, p - 1 = ${p - 1}")
 
       val x1 = Crypto.FME(sym.toInt, Ca, p) // transfer from A to B
 
@@ -34,9 +41,8 @@ object Crypto_ciphers {
       val x4 = Crypto.FME(x3, Db, p)
 
       decoded_message += x4.toChar
-//      println(s"B abonent get ${x4.toChar} symbol")
     }
-    println("Decoded message = " + decoded_message)
+    write_to_file(decoded_message, "resources/shamir_decrypt")
   }
 
   def El_Gamal_cipher(path:String): Unit = {
@@ -51,6 +57,8 @@ object Crypto_ciphers {
     val d1:BigInt = Crypto.FME(pg._2, c1, pg._1)
     val d2:BigInt = Crypto.FME(pg._2, c2, pg._1)
 
+    var decrypted_message:String = ""
+
     for (sym <- byteArray){
       val k = Crypto.gen_test_number(pg._1 - 2)
       val r = Crypto.FME(pg._2, k, pg._1) // counted by A
@@ -61,10 +69,9 @@ object Crypto_ciphers {
       val e = (sym.toInt % pg._1 * Crypto.FME(d2, k, pg._1)) % pg._1 // counted by A
 
       val o = (e % pg._1 * Crypto.FME(r, pg._1 - 1 - c2, pg._1)) % pg._1 // counted by B
-//      println(s"Abonent B get ${o.toChar} symbol")
-      print(s"${o.toChar}")
+      decrypted_message += o.toChar
     }
-    println()
+    write_to_file(decrypted_message, "resources/El_Gamal_decrypt")
   }
 
   def RSA_generate_keys(): (BigInt /*d*/, BigInt /*N*/, BigInt /*c*/) = {
@@ -103,46 +110,41 @@ object Crypto_ciphers {
   def RSA_encrypt(path:String, d:BigInt, N:BigInt): BigInt = {
     val byteArray = Files.readAllBytes(Paths.get(path))
     var encrypted_message:BigInt = 0
-
     for (sym <- byteArray){
-      encrypted_message += Crypto.FME(sym.toInt, d, N)
+      val sym_int:Int = sym + 128
+      encrypted_message += Crypto.FME(sym_int.toInt, d, N)
       encrypted_message <<= RSA_count_offset(N)._1
     }
+    encrypted_message >>= RSA_count_offset(N)._1
     encrypted_message
   }
 
-  def RSA_decrypt(message:BigInt, c:BigInt, N:BigInt): String ={
+  def RSA_decrypt(message:BigInt, c:BigInt, N:BigInt, path:String): Unit ={
     var decoded_message:String = ""
     var message_cp:BigInt = message
     while (message_cp != 0){
-      var byte:Char = Crypto.FME(message_cp & RSA_count_offset(N)._2, c, N).toChar
+      var byte:Char = (Crypto.FME(message_cp & RSA_count_offset(N)._2, c, N) - 128).toChar
       message_cp >>= RSA_count_offset(N)._1
       decoded_message += byte
     }
     decoded_message.reverse
+    decoded_message.dropRight(1)
+    write_to_file(decoded_message, "resources/RSA_decrypt")
   }
 
   def Vernam_cipher(path:String): Unit ={
     val byteArray = Files.readAllBytes(Paths.get(path))
-    var len:Int = byteArray.size
-    var message:BigInt = 0
-    for (sym <- byteArray) {
-      message += sym.toInt
-      message <<= 8
-    }
-    var key:BigInt = 0
-    for (i <- 0 to len) {
-      key += Crypto.gen_test_number() % 255
-      key <<= 8
-    }
-
-    var encrypted:BigInt = message ^ key
-    var decrypted = encrypted ^ key
-    var dec_mes:String = ""
-    for (i <- 0 to len){
-      dec_mes += (decrypted & 0xff).toChar
-      decrypted >>= 8
-    }
-    println("Decrypted message = " + dec_mes.reverse)
+    val len:Int = byteArray.size
+    val key = new Array[Byte](len)
+    for (i <- 0 until len)
+      key(i) = (Crypto.gen_test_number() % 255).toByte
+    val encrypted = new Array[Byte](len)
+    for (i <- 0 until len)
+      encrypted(i) = byteArray(i).^(key(i)).toByte
+    val decrypted = new Array[Byte](len)
+    for (i <- 0 until len)
+      decrypted(i) = encrypted(i).^(key(i)).toByte
+    write_to_file(decrypted.map(_.toChar).mkString, "resources/Vernam_decrypt")
   }
+
 }
