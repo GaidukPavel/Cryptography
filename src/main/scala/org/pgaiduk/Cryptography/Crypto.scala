@@ -7,7 +7,7 @@ object Crypto {
   val rand = new Random(System.currentTimeMillis())
   val greatest_val = 1000000000
 
-  private def fermi(a:BigInt) : Boolean = {
+  def fermi(a:BigInt) : Boolean = {
     if (a == 2)
       return true
     val r = new Random(System.currentTimeMillis())
@@ -25,9 +25,19 @@ object Crypto {
     while (!exit) {
       q = math.abs(rand.nextLong())
       while (!fermi(q)) q = math.abs(rand.nextLong()) % greatest_val
-      if (fermi(2 * q - 1)) exit = true
+      if (fermi(2 * q + 1)) exit = true
     }
-    (2 * q - 1, q)
+    (2 * q + 1, q)
+  }
+
+  def generateSophieGermain(gt: BigInt): (BigInt, BigInt) = {
+    var exit = false
+    var q:BigInt = 0
+    while (!exit) {
+      q = gen_test_prime_number(gt)
+      if (fermi(2 * q + 1)) exit = true
+    }
+    (2 * q + 1, q)
   }
 
   def gen_test_number() : Long = {
@@ -38,9 +48,36 @@ object Crypto {
     n
   }
 
+  def gen_prime(bits:Int) : BigInt = {
+    var num:BigInt = 10
+    while (!fermi(num)){
+      num = 0
+      num += 1
+      for (i <- 1 to bits) {
+        num += math.abs(rand.nextLong()) % 2
+        num <<= 1
+      }
+      num += 1
+    }
+    num >>= 1
+    num
+  }
+
+  def gen_number(bits:Int) : BigInt = {
+    var num:BigInt = 1
+    for (i <- 1 to bits) {
+      num += math.abs(rand.nextLong()) % 2
+      num <<= 1
+    }
+    num >>= 1
+    num
+  }
+
   def gen_test_number(highest:BigInt) : BigInt = {
-    var n = math.abs(rand.nextLong()) % highest
-    while (n == 0 || n == 1) n = math.abs(rand.nextLong()) % highest
+    var n:BigInt = (BigInt(math.abs(rand.nextLong())) * BigInt(math.abs(rand.nextLong())) * BigInt(math.abs(rand.nextLong()))) % highest
+    while (n == 0 || n == 1) {
+      n = (BigInt(math.abs(rand.nextLong())) * BigInt(math.abs(rand.nextLong())) * BigInt(math.abs(rand.nextLong()))) % highest
+    }
     n
   }
 
@@ -48,6 +85,22 @@ object Crypto {
     var q = math.abs(rand.nextLong()) % greatest_val
     while (!fermi(q)) {
       q = math.abs(rand.nextLong()) % greatest_val
+    }
+    q
+  }
+
+  def gen_test_prime_number(gt:BigInt) : BigInt = {
+    var q:BigInt = math.abs(rand.nextLong())
+    while (q < gt){
+      q *= math.abs(rand.nextLong())
+      q += math.abs(rand.nextLong())
+    }
+    while (!fermi(q)) {
+      q = math.abs(rand.nextLong())
+      while (q < gt) {
+        q *= math.abs(rand.nextLong())
+        q += math.abs(rand.nextLong())
+      }
     }
     q
   }
@@ -67,7 +120,7 @@ object Crypto {
       }
   }
 
-  def gcd(a:BigInt, b:BigInt): (BigInt, BigInt, BigInt) = {
+  def gcd(a:BigInt, b:BigInt): (BigInt /*g*/, BigInt /*x*/, BigInt /*y*/) = {
     if (a == 0) {
       return (b, 0, 1)
     }

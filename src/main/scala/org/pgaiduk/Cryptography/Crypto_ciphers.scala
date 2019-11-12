@@ -15,7 +15,7 @@ object Crypto_ciphers {
 
   def Shamir_cipher(path:String): Unit ={
     val byteArray = Files.readAllBytes(Paths.get(path))
-    var p = Crypto.gen_test_prime_number()
+    val p = Crypto.gen_test_prime_number()
     var decoded_message:String = ""
     for (sym <- byteArray) {
       val Ca = Crypto.gen_test_prime_number()
