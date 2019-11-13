@@ -21,7 +21,7 @@ object Crypto_signatures {
     message
   }
 
-  private def generate_pq(): Unit = {
+  private def generate_pq(): (BigInt, BigInt, BigInt) = {
 //    val q = Crypto.gen_prime(256)
 //    var b:BigInt = 1
 //    while ((q*b + 1).bitLength != 1024 && !Crypto.fermi(q*b + 1)){
@@ -30,7 +30,12 @@ object Crypto_signatures {
 //        b = b * 2 * (1024 - (b*q + 1).bitLength)
 //    }
 //    TODO pq 16 31
-
+    val q:BigInt = Crypto.gen_prime(16)
+    var b:BigInt = 1
+    while (!Crypto.fermi(b * q + 1) || (b * q + 1).bitLength != 31){
+      b += 1
+    }
+    (b * q + 1, q, b)
   }
 
   def El_Gamal_sign(path:String): (BigInt, BigInt, BigInt, BigInt, BigInt) = {
@@ -87,12 +92,50 @@ object Crypto_signatures {
     println(s"h = ${h.getSHA1 % N}\nw = $w")
   }
 
-  def Interstate_Standard_sign(path:String) = {
-
+  def Interstate_Standard_sign(path:String): (BigInt, BigInt, BigInt, BigInt, (BigInt, BigInt)) = {
+    val pq = generate_pq()
+    var a:BigInt = 2
+    while (Crypto.FME(a, pq._2, pq._1) != 1) {
+      a += 1
+    }
+    val x:BigInt = Crypto.gen_test_number(pq._2)
+    val y:BigInt = Crypto.FME(a, x, pq._1)
+    println(s"p = ${pq._1}, q = ${pq._2}, a = $a, x = $x, y = $y")
+    val h = new SHA1(read_file(path))
+    var k:BigInt = 0
+    var r:BigInt = 0
+    var s:BigInt = 0
+    while (r == 0 || s == 0) {
+      k = Crypto.gen_test_number(pq._2)
+      r = Crypto.FME(a, k, pq._1) % pq._2
+      s = (k * (h.getSHA1 % pq._2) + x * r) % pq._2
+    }
+    (r, s, a, y, (pq._1, pq._2))
   }
 
-  def Interstate_Standard_verify(path:String, y:BigInt, a:BigInt, r:BigInt, s:BigInt, p:BigInt, q:BigInt): Unit = {
-
+  def Interstate_Standard_verify(path:String, r:BigInt, s:BigInt, a:BigInt, y:BigInt, pq:(BigInt, BigInt)): Unit = {
+    val h = new SHA1(read_file(path))
+    val inversion:BigInt = {
+      if (Crypto.gcd(h.getSHA1 % pq._2, pq._2)._2 > 0)
+        Crypto.gcd(h.getSHA1 % pq._2, pq._2)._2
+      else
+        Crypto.gcd(h.getSHA1 % pq._2, pq._2)._2 + pq._2
+    }
+    val u1: BigInt = (s * inversion) % pq._2
+    var u2 = -r * inversion
+    do {
+      u2 += pq._2
+    } while (u2 < 0)
+    u2 %= pq._2
+    val u = (Crypto.FME(a, u1, pq._1) * Crypto.FME(y, u2, pq._1)) % pq._1 % pq._2
+    println(s"r = $r, u = $u")
+    if (r == u){
+      println("Sign correct!")
+      println(s"r = $r, u = $u")
+    }
+    else
+    {
+      println("Sign incorrect.")
+    }
   }
-
 }

@@ -50,16 +50,14 @@ object Crypto {
 
   def gen_prime(bits:Int) : BigInt = {
     var num:BigInt = 10
-    while (!fermi(num)){
+    while (!fermi(num) || num.bitLength != bits){
       num = 0
-      num += 1
-      for (i <- 1 to bits) {
+      for (i <- 1 until bits) {
         num += math.abs(rand.nextLong()) % 2
         num <<= 1
       }
       num += 1
     }
-    num >>= 1
     num
   }
 
