@@ -4,41 +4,37 @@ import org.pgaiduk.Cryptography.Crypto
 
 import scala.util.Random
 
-class Player(pc: BigInt) {
+class Player(pc: BigInt, num: Int) {
   var c:BigInt = 0
   val p:BigInt = pc
+  val number:Int = num
   while (Crypto.gcd(c, p - 1)._1 != 1) {
     c = Crypto.gen_number(128)
   }
-  val d =
+  val d: BigInt =
     {
       if (Crypto.gcd(c, p - 1)._2 > 0)
         Crypto.gcd(c, p - 1)._2
       else
         Crypto.gcd(c, p - 1)._2 + p - 1
     }
-  var deck = Array[BigInt]()
-  var hand = Array[BigInt]()
+  var deck: List[BigInt] = List[BigInt]()
+  var hand: List[BigInt] = List[BigInt]()
   def enc(): Unit = {
-    for (i <- 0 to deck.length) {
-      deck(i) = Crypto.FME(deck(i), c, p)
-    }
-  }
-
-  def enc2(): Unit = {
-    for (i <- 0 to deck.length) {
-      deck(i) = Crypto.FME(deck(i), d, p)
-    }
+    deck = deck.map((i: BigInt) => Crypto.FME(i, d, p))
+    shuffle()
   }
 
   def dec(): Unit = {
-    for (i <- 0 to 2){
-      hand(i) = Crypto.FME(hand(i), d, p)
-    }
+    deck = deck.map((i: BigInt) => Crypto.FME(i, c, p))
   }
 
   def shuffle(): Unit = {
-    deck = Random.shuffle(deck.toList).toArray
+    deck = Random.shuffle(deck)
+  }
+
+  def getC:BigInt = {
+    d
   }
 
 }
