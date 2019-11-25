@@ -132,6 +132,14 @@ object Crypto_ciphers {
     write_to_file(decoded_message, "resources/RSA_decrypt")
   }
 
+  def RSA_encrypt(value:Long, d:BigInt, N:BigInt): BigInt = {
+    Crypto.FME(value, d, N)
+  }
+
+  def RSA_decrypt(value:BigInt, c:BigInt, N:BigInt): Long = {
+    Crypto.FME(value, c, N).toLong
+  }
+
   def Vernam_cipher(path:String): Unit ={
     val byteArray = Files.readAllBytes(Paths.get(path))
     val len:Int = byteArray.size

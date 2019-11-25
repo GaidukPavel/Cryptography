@@ -2,8 +2,6 @@ package org.pgaiduk.Cryptography
 
 import java.nio.file.{Files, Paths}
 
-import org.pgaiduk.Cryptography.Crypto.rand
-
 /*
     Hex string to BigInt
     println("digest str = " + digestStr)
@@ -86,10 +84,21 @@ object Crypto_signatures {
     (s, params._1, params._2)
   }
 
+  def RSA_sign(value:Long, N:BigInt, c:BigInt): BigInt = {
+    Crypto.FME(value % N, c, N)
+  }
+
   def RSA_verify(path:String, s:BigInt,d:BigInt, N:BigInt): Unit = {
     val h = new SHA1(read_file(path))
     val w:BigInt = Crypto.FME(s, d, N)
     println(s"h = ${h.getSHA1 % N}\nw = $w")
+  }
+
+  def RSA_verify(s:BigInt,d:BigInt, N:BigInt, value:Long): Boolean = {
+    val w:BigInt = Crypto.FME(s, d, N)
+    if (value == w.toLong)
+      return true
+    false
   }
 
   def Interstate_Standard_sign(path:String): (BigInt, BigInt, BigInt, BigInt, (BigInt, BigInt)) = {

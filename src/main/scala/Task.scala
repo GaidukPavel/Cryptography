@@ -1,6 +1,7 @@
 import org.pgaiduk.Cryptography.Crypto_ciphers
 import org.pgaiduk.Cryptography.Crypto_signatures
 import org.pgaiduk.poker.Game
+import org.pgaiduk.vote.Voting
 
 object Task {
 
@@ -16,9 +17,14 @@ object Task {
 //    Crypto_signatures.El_Gamal_verify("resources/picture.png", sign._1, sign._2, sign._3, sign._4, sign._5)
 //      var sign = Crypto_signatures.Interstate_Standard_sign("resources/picture.png")
 //      Crypto_signatures.Interstate_Standard_verify("resources/text_to_encrypt", sign._1, sign._2, sign._3, sign._4, sign._5)
-    println(s"Input number of players: ")
-    val players:String = scala.io.StdIn.readLine()
-    val game:Game = new Game(players.toInt)
+    /** Poker **/
+//    println(s"Input number of players: ")
+//    val players:String = scala.io.StdIn.readLine()
+//    val game:Game = new Game(players.toInt)
+    /***********/
+    val voting:Voting = new Voting(600)
+    voting.make_vote()
+    voting.count_results()
   }
 
 }
