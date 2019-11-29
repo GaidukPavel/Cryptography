@@ -2,6 +2,7 @@ import org.pgaiduk.Cryptography.Crypto_ciphers
 import org.pgaiduk.Cryptography.Crypto_signatures
 import org.pgaiduk.poker.Game
 import org.pgaiduk.vote.Voting
+import org.pgaiduk.zeroKnowledge
 
 object Task {
 
@@ -22,9 +23,15 @@ object Task {
 //    val players:String = scala.io.StdIn.readLine()
 //    val game:Game = new Game(players.toInt)
     /***********/
-    val voting:Voting = new Voting(600)
-    voting.make_vote()
-    voting.count_results()
+    /****Voting****/
+//    val voting:Voting = new Voting(600)
+//    voting.make_vote()
+//    voting.count_results()
+    /********/
+    /***Zero-knowledge***/
+    val knowledge = new zeroKnowledge.GraphColoring
+    println(s"result = ${knowledge.checkLink(1, 3)}")
+    /********/
   }
 
 }
