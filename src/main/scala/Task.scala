@@ -7,7 +7,6 @@ import org.pgaiduk.zeroKnowledge
 object Task {
 
   def main (args: Array[String]) : Unit = {
-    //Количество ребер не больше 30
 //    Crypto_ciphers.Vernam_cipher("resources/picture.png")
 //    val keys = Crypto_ciphers.RSA_generate_keys()
 //    val message = Crypto_ciphers.RSA_encrypt("resources/picture.png", keys._1, keys._2)
@@ -30,7 +29,10 @@ object Task {
     /********/
     /***Zero-knowledge***/
     val knowledge = new zeroKnowledge.GraphColoring
-    println(s"result = ${knowledge.checkLink(1, 3)}")
+    for (i <- 0 until 13){
+      println(s"result = ${knowledge.checkLink(i)}")
+    }
+    knowledge.print_graph()
     /********/
   }
 

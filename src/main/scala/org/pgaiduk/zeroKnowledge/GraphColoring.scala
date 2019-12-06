@@ -8,62 +8,86 @@ import scala.util.Random
 class GraphColoring {
   /* Constructor to read and write graph to a structure*/
   var graph:List[((Int, Int), List[Int])] = List[((Int, Int), List[Int])]()
-  val filename = "resources/graph2.txt"
+  val filename = "resources/graph_main"
   for (line <- Source.fromFile(filename).getLines()){
     var vertex:(Int, Int) = (line.split("#")(0).split(",")(0).toInt, line.split("#")(0).split(",")(1).toInt)
     var adjacency_list:List[Int] = line.split("#")(1).split(",").toList.map(_.toInt)
     graph ::= (vertex, adjacency_list)
   }
   graph = graph.reverse
-  println("graph was:")
-  for (vertex <- graph) {
-    println(s"vertex number = ${vertex._1._1} color = ${vertex._1._2}")
-  }
   /***********/
-  var graph_changed:List[((Int, Int), List[Int])] = List[((Int, Int), List[Int])]()
+  var graph_links: List[(Int, Int)] = translate_to_vert_list()
+  var vertexes_colors: List[(Int, Int /* Color */)] = {
+    var vert_tmp:List[(Int /*vertex number*/,Int /* Color */ )] = List[(Int, Int)]()
+    for (vertex <- graph){
+      vert_tmp ::=  vertex._1
+    }
+    vert_tmp
+  }
+  vertexes_colors = vertexes_colors.reverse
+  var graph_changed:List[(BigInt, BigInt)] = List[(BigInt, BigInt)]()
+  var list_vertex_nums:Array[Int] = new Array[Int](vertexes_colors.length)
+  var list_vertex_RSA:Array[(BigInt /*d*/, BigInt /*N*/, BigInt /*c*/)] = new Array[(BigInt /*d*/, BigInt /*N*/, BigInt /*c*/)](vertexes_colors.length)
+
+  changeGraph()
 
   private def changeGraph(): Unit = {
     var colors:List[Int] = 1 :: 2 :: 3 :: Nil
-    colors = Random.shuffle(colors)
-    for (vertex <- graph) {
+    do {
+      colors = Random.shuffle(colors)
+    } while (List(1, 2, 3) == colors)
+    for (vertex <- vertexes_colors) {
       var vertex_number:Int = Crypto.gen_number(30).toInt
       vertex_number >>= 2
-      vertex_number = (vertex_number << 2) + colors(vertex._1._2 % 3)
-      graph_changed ::= ((vertex_number, colors(vertex._1._2 % 3)), vertex._2)
+      vertex_number = (vertex_number << 2) + colors(vertex._2 % 3)
+      list_vertex_nums(vertex._1) = vertex_number
+      list_vertex_RSA(vertex._1) = Crypto_ciphers.RSA_generate_keys()
+    }
+    for (link <- graph_links){
+      graph_changed ::= (Crypto_ciphers.RSA_encrypt(list_vertex_nums(link._1), list_vertex_RSA(link._1)._1, list_vertex_RSA(link._1)._2), Crypto_ciphers.RSA_encrypt(list_vertex_nums(link._2), list_vertex_RSA(link._2)._1, list_vertex_RSA(link._2)._2))
     }
     graph_changed = graph_changed.reverse
-    println("graph now:")
-    for (vertex <- graph_changed) {
-      println(s"vertex number = ${vertex._1._1.toBinaryString} color = ${vertex._1._2}")
-    }
   }
-  var RSA_data:List[(BigInt /*d*/, BigInt /*N*/, BigInt /*c*/)] = List[(BigInt, BigInt, BigInt)]()
-  private def generateRSAData(): Unit = {
-    for (i <- graph_changed.indices){
-      RSA_data ::= Crypto_ciphers.RSA_generate_keys()
-    }
+
+  def checkLink(link_num:Int):Boolean = {
+    val first_vertex_color = Crypto_ciphers.RSA_decrypt(graph_changed(link_num)._1, list_vertex_RSA(graph_links(link_num)._1)._3, list_vertex_RSA(graph_links(link_num)._1)._2) & 3
+    val second_vertex_color = Crypto_ciphers.RSA_decrypt(graph_changed(link_num)._2,  list_vertex_RSA(graph_links(link_num)._2)._3, list_vertex_RSA(graph_links(link_num)._2)._2) & 3
+    if (first_vertex_color != second_vertex_color)
+      return true
+    false
   }
-  changeGraph()
-  generateRSAData()
-  RSA_data = RSA_data.reverse
-  var encrypted:List[(BigInt /*d*/, BigInt /*N*/, BigInt /*Z*/)] = List[(BigInt, BigInt, BigInt)]() // this data is for Bob
-  private def encrypt(): Unit = {
-    for (i <- graph_changed.indices) {
-      encrypted ::= (RSA_data(i)._1, RSA_data(i)._2, Crypto_ciphers.RSA_encrypt(graph_changed(i)._1._1, RSA_data(i)._1, RSA_data(i)._2))
-    }
+
+  def get_number_of_links():Int = {
+    graph_links.length
   }
-  encrypt()
-  encrypted = encrypted.reverse
-  def checkLink(s:Int, e:Int):Boolean = {
-    val c1:Int = (Crypto_ciphers.RSA_decrypt(encrypted(s-1)._3, RSA_data(s-1)._3, encrypted(s-1)._2) & 3).toInt
-    val c2:Int = (Crypto_ciphers.RSA_decrypt(encrypted(e-1)._3, RSA_data(e-1)._3, encrypted(e-1)._2) & 3).toInt
-    println(s"c1 = ${Crypto_ciphers.RSA_decrypt(encrypted(s-1)._3, RSA_data(s-1)._3, encrypted(s-1)._2).toBinaryString}")
-    println(s"c2 = ${Crypto_ciphers.RSA_decrypt(encrypted(e-1)._3, RSA_data(e-1)._3, encrypted(e-1)._2).toBinaryString}")
-    println(s"colors = $c1, $c2")
-    if (c1 != c2)
-      true
-    else
-      false
+
+  private def translate_to_vert_list(): List[(Int, Int)] = {
+    var converted:List[(Int, Int)] = List[(Int, Int)]()
+    for (line <- graph) {
+      for (elem <- line._2) {
+        if (line._1._1 != elem) {
+          if (converted.contains((line._1._1, elem)) || converted.contains((elem, line._1._1))) {
+
+          }
+          else
+          {
+            converted ::= (line._1._1, elem)
+          }
+        }
+      }
+    }
+    converted.reverse
+  }
+
+  def print_graph(): Unit ={
+    println("Links:")
+    for (link <- graph_links){
+      println(s"(${link._1}, ${link._2})")
+    }
+    println("Vertexes colors:")
+    for (vertex <- vertexes_colors){
+      println(s"(${vertex._1}, ${vertex._2})")
+    }
   }
 
 }
