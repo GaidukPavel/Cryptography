@@ -1,7 +1,7 @@
 import org.pgaiduk.Cryptography.Crypto_ciphers
 import org.pgaiduk.Cryptography.Crypto_signatures
 import org.pgaiduk.poker.Game
-import org.pgaiduk.vote.Voting
+import org.pgaiduk.vote.{Client, Server}
 import org.pgaiduk.zeroKnowledge
 
 object Task {
@@ -23,16 +23,19 @@ object Task {
 //    val game:Game = new Game(players.toInt)
     /***********/
     /****Voting****/
-//    val voting:Voting = new Voting(600)
-//    voting.make_vote()
-//    voting.count_results()
+    val voting_server:Server = new Server(10)
+    for (i <- 0 until 10){
+      val voter = new Client(i, voting_server)
+      voter.vote()
+    }
+    voting_server.count_results()
     /********/
     /***Zero-knowledge***/
-    val knowledge = new zeroKnowledge.GraphColoring
-    for (i <- 0 until 13){
-      println(s"result = ${knowledge.checkLink(i)}")
-    }
-    knowledge.print_graph()
+//    val knowledge = new zeroKnowledge.GraphColoring
+//    for (i <- 0 until 13){
+//      println(s"result = ${knowledge.checkLink(i)}")
+//    }
+//    knowledge.print_graph()
     /********/
   }
 

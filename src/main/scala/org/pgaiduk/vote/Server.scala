@@ -2,7 +2,7 @@ package org.pgaiduk.vote
 
 import org.pgaiduk.Cryptography.{Crypto, Crypto_ciphers, Crypto_signatures}
 
-class Voting(participants:Int) {
+class Server(participants:Int) {
   private val partis: Int = {
     if (participants == 1)
       2
@@ -11,19 +11,35 @@ class Voting(participants:Int) {
   }
 
   private val a = Crypto_ciphers.RSA_generate_keys()
-  private var e = List[(BigInt /*d*/, BigInt /*N*/, BigInt /*c*/)]()
-  for (i <- 0 until partis)
-    e = Crypto_ciphers.RSA_generate_keys() :: e
 
   val candidates:List[String] = List[String]("Java", "C++", "Scala", "Python", "Swift")
   var box:List[(BigInt, BigInt)] = List[(BigInt, BigInt)]()
+  var voters:Array[BigInt] = new Array[BigInt](partis)
+  for (i <- 0 until partis){
+    voters(i) = i
+  }
 
-  def make_vote(): Unit = {
-    for (participant <- e) {
-      val vote:Long = Crypto.gen_test_number() % candidates.length
-      val keys = Crypto_ciphers.RSA_generate_keys()
-      box = (Crypto_ciphers.RSA_encrypt(vote, a._1, a._2), Crypto_signatures.RSA_sign(vote, participant._2, participant._3)) :: box
+  def get_number_of_candidates():Int = {
+    candidates.length
+  }
+
+  def get_server_key(): (BigInt, BigInt) = {
+    (a._1, a._2)
+  }
+
+  def vote(enc:BigInt, signed:BigInt, key:BigInt, N:BigInt): Unit = {
+    if (voters.contains(key) && Crypto_signatures.RSA_verify(signed, key, N, Crypto_ciphers.RSA_decrypt(enc, a._3, a._2).toInt))
+      box = (enc, signed) :: box
+  }
+
+  def check_voter(number:Int, key:BigInt): Boolean ={
+    if (voters.contains(number)){
+      for (i <- voters.indices){
+        voters(i) = key
+        return true
+      }
     }
+    false
   }
 
   def count_results(): Unit = {
@@ -35,4 +51,5 @@ class Voting(participants:Int) {
     for (i <- results zip candidates)
       println(i._1 + " votes for " + i._2)
   }
+
 }
